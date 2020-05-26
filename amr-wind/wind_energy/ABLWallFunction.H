@@ -25,6 +25,8 @@ public:
 
     void update_umean(const FieldPlaneAveraging& pa);
 
+    void ComputePlanar(const CFDSim& sim);
+
 private:
     const amrex::AmrCore& m_mesh;
 
@@ -38,6 +40,22 @@ private:
 
     int m_direction{2};
     bool m_use_fch{true};
+
+    int m_z_sample_index;
+
+    amrex::Array<amrex::Real, 2> m_coeff_interp{{0.0, 0.0}};
+
+    int m_ncells_x, m_ncells_y;
+
+    amrex::Real m_mean_wind, m_mean_x, m_mean_y;
+
+    amrex::Box m_bx_z_sample;
+    amrex::FArrayBox  m_store_xy_vel;
+
+    // Field& m_tau_wall;
+
+
+  
 };
 
 class ABLVelWallFunc : public FieldBCIface
