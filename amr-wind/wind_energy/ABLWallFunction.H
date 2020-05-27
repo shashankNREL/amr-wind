@@ -54,8 +54,6 @@ private:
 
     // Field& m_tau_wall;
 
-
-  
 };
 
 class ABLVelWallFunc : public FieldBCIface
