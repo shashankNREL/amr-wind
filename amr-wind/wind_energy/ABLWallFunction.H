@@ -82,8 +82,6 @@ private:
 
     const int maxIter=25;
 
-  
-
 };
 
 class ABLVelWallFunc : public FieldBCIface
