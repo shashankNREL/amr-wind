@@ -7,6 +7,13 @@
 
 namespace amr_wind {
 
+/** Wall-function computations for LES simulations of ABL
+ *  \ingroup we_abl
+ *
+ *  This class performs the necessary computations at the beginning of
+ *  predictor/corrector steps. The actual BC population in ghost cells is
+ *  performed by ABLVelWallFunc BC interface class.
+ */
 class ABLWallFunction
 {
 public:
@@ -14,17 +21,28 @@ public:
 
     ~ABLWallFunction() = default;
 
+    //! Return the height used to perform friction velocity computations
     amrex::Real log_law_height() const { return m_log_law_height; }
 
+    //! Return the plane-averaged computed friction velocity at any given instance
     amrex::Real utau() const { return m_utau; }
 
+    //! Return the mean velocity used for friction velocity computations
     const amrex::Array<amrex::Real, AMREX_SPACEDIM>& umean() const
     { return m_umean; }
 
+    //! Initialize the log-law height based on user inputs
     void init_log_law_height();
 
+    //! Update the mean velocity at a given timestep
     void update_umean(const FieldPlaneAveraging& pa);
 
+    //! Return Monin-Obukhov Similarity function psi_m
+    amrex::Real mo_psi_m(amrex::Real zeta); 
+
+    //! Return Monin-Obukhov Similarity function psi_h
+    amrex::Real mo_psi_h(amrex::Real zeta);
+    
     void computeplanar();
 
     void computeusingheatflux();
@@ -33,13 +51,13 @@ public:
 
     const amrex::FArrayBox&  instplanar() const {return m_store_xy_vel_temp;}
 
-    amrex::Real meanwindspeed() const {return m_mean_windSpeed;}
+    amrex::Real mean_windspeed() const {return m_mean_windspeed;}
 
-    amrex::Real heatflux_wall() const {return m_abl_surface_flux;}
+    amrex::Real surface_temp_flux() const {return m_surf_temp_flux;}
 
     bool use_fch() const {return m_use_fch;}
 
-    bool is_abl_neutral() const {return m_abl_neutral;}
+    amrex::Real obukhov_length() const {return m_obukhov_length;}    
 
 private:
 
@@ -47,24 +65,25 @@ private:
   
     const amrex::AmrCore& m_mesh;
 
+    //! Mean velocity
     amrex::Array<amrex::Real, AMREX_SPACEDIM> m_umean{{0.0, 0.0, 0.0}};
 
-    amrex::Real m_log_law_height{0.0};
-    amrex::Real m_utau;
+    amrex::Real m_log_law_height{0.0}; ///< log-law height
+    amrex::Real m_utau; ///< Friction velocity
 
-    amrex::Real m_kappa{0.41};
-    amrex::Real m_z0{0.1};
+    amrex::Real m_kappa{0.41}; ///< von Karman constant
+    amrex::Real m_z0{0.1}; ///< Roughness height
+
+    int m_direction{2}; ///< Direction normal to wall
+    bool m_use_fch{true}; ///< Use first cell height?
 
     amrex::Vector<amrex::Real> m_gravity{{0.0, 0.0, -9.81}};
-
-    int m_direction{2};
-    bool m_use_fch{true};
 
     amrex::Array<amrex::Real, 2> m_coeff_interp{{0.0, 0.0}};
 
     int m_ncells_x, m_ncells_y;
 
-    amrex::Real m_mean_windSpeed, m_mean_potTemp;
+    amrex::Real m_mean_windspeed, m_mean_pot_temp;
 
     // amrex::Vector<amrex::Box> m_bx_z_sample;
     // amrex::Vector<amrex::FArrayBox>  m_store_xy_vel;
@@ -74,21 +93,29 @@ private:
     amrex::FArrayBox  m_store_xy_vel_temp;
     int m_z_sample_index;
 
-    bool m_abl_neutral, m_stable, m_heatflux;
-    amrex::Real m_abl_surface_flux;
-    amrex::Real m_abl_surface_rate;
-    amrex::Real m_obhukhov_length;
+    bool m_tempflux;
+    amrex::Real m_surf_temp_flux;
+    amrex::Real m_surf_temp_rate;
+    amrex::Real m_surf_temp_rate_tstart;
+    amrex::Real m_surf_temp_init;
+    amrex::Real m_obukhov_length;
     amrex::Real m_psi_m, m_psi_h;
-    amrex::Real m_abl_surface_temp;
-    amrex::Real m_surface_temp_ref;
+    amrex::Real m_surf_temp;
+    amrex::Real m_ref_temp;
 
-    const amrex::Real m_stable_beta = 5.0;
-    const amrex::Real m_unstable_gamma = 16.0;
+    const amrex::Real m_gamma_m{4.7};
+    const amrex::Real m_gamma_h{4.7};
+    const amrex::Real m_beta_m{15.0};
 
-    const int maxIter=25;
+    const int m_max_iter{25};
 
 };
 
+/** Applies a shear-stress value at the domain boundary
+ *  \ingroup field_bc we_abl
+ *
+ *  \sa ABLWallFunction
+ */
 class ABLVelWallFunc : public FieldBCIface
 {
 public:
