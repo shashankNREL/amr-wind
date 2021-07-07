@@ -130,6 +130,10 @@ void ABL::post_init_actions()
 void ABL::pre_advance_work()
 {
     const auto& vel_pa = m_stats->vel_profile();
+
+    m_abl_wall_func.update_umean(
+        m_stats->vel_profile(), m_stats->theta_profile());
+
     amrex::Real interpTflux;
     amrex::Real interpUstar;
     amrex::Array<amrex::Real, 4> wallfunc_aux;
@@ -155,35 +159,23 @@ void ABL::pre_advance_work()
     }
 
     if (m_stats_file != nullptr) {
-        interpUstar =
-            m_stats_file->interpUstarTime(m_sim.time().current_time());
         m_stats_file->interpThetaTime(
             m_sim.time().current_time(), wallfunc_aux);
-
-        m_abl_wall_func.update_umean(wallfunc_aux, interpTflux, interpUstar);
-
-        if (m_abl_mean_bous != nullptr) {
-            m_abl_mean_bous->mean_temperature_update(
-                m_stats_file->stats_theta());
-        }
 
         if (m_abl_wrf_forcing != nullptr) {
             m_abl_wrf_forcing->mean_velocity_heights(
                 m_stats_file->stat_u_1D(), m_stats_file->stat_v_1D(),
                 m_wrf_file);
         }
-
     } else {
-        if (m_abl_mean_bous != nullptr) {
-            m_abl_mean_bous->mean_temperature_update(m_stats->theta_profile());
-        }
-        m_abl_wall_func.update_umean(
-            m_stats->vel_profile(), m_stats->theta_profile());
-
         if (m_abl_wrf_forcing != nullptr) {
             m_abl_wrf_forcing->mean_velocity_heights(
                 m_stats->vel_profile(), m_wrf_file);
         }
+    }
+
+    if (m_abl_mean_bous != nullptr) {
+      m_abl_mean_bous->mean_temperature_update(m_stats->theta_profile());
     }
 
     m_bndry_plane->pre_advance_work();
